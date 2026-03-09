@@ -1,4 +1,3 @@
-```yaml
 name: DevOps CI/CD Pipeline
 
 on:
@@ -11,54 +10,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-    - name: Checkout Repository
-      uses: actions/checkout@v3
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-    # Login to DockerHub
-    - name: Login to DockerHub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build Backend Image
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/devops-backend:latest ./backend
 
-    # Build Backend Docker Image
-    - name: Build Backend Image
-      run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/devops-backend:latest ./backend
+      - name: Push Backend Image
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/devops-backend:latest
 
-    # Push Backend Docker Image
-    - name: Push Backend Image
-      run: |
-        docker push ${{ secrets.DOCKER_USERNAME }}/devops-backend:latest
+      - name: Build Frontend Image
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/devops-frontend:latest ./frontend
 
-    # Build Frontend Docker Image
-    - name: Build Frontend Image
-      run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/devops-frontend:latest ./frontend
+      - name: Push Frontend Image
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/devops-frontend:latest
 
-    # Push Frontend Docker Image
-    - name: Push Frontend Image
-      run: |
-        docker push ${{ secrets.DOCKER_USERNAME }}/devops-frontend:latest
-
-    # Deploy to EC2 using SSH
-    - name: Deploy to EC2
-      uses: appleboy/ssh-action@v0.1.6
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ubuntu
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          docker pull ${{ secrets.DOCKER_USERNAME }}/devops-backend:latest
-          docker pull ${{ secrets.DOCKER_USERNAME }}/devops-frontend:latest
-
-          docker stop backend || true
-          docker stop frontend || true
-
-          docker rm backend || true
-          docker rm frontend || true
-
-          docker run -d -p 8000:8000 --name backend ${{ secrets.DOCKER_USERNAME }}/devops-backend:latest
-          docker run -d -p 80:5173 --name frontend ${{ secrets.DOCKER_USERNAME }}/devops-frontend:latest
-```
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            docker pull ${{ secrets.DOCKER_USERNAME }}/devops-backend:latest
+            docker pull ${{ secrets.DOCKER_USERNAME }}/devops-frontend:latest
+            docker stop backend || true
+            docker stop frontend || true
+            docker rm backend || true
+            docker rm frontend || true
+            docker run -d -p 8000:8000 --name backend ${{ secrets.DOCKER_USERNAME }}/devops-backend:latest
+            docker run -d -p 80:5173 --name frontend ${{ secrets.DOCKER_USERNAME }}/devops-frontend:latest
