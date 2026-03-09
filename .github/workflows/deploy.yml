@@ -1,0 +1,68 @@
+name: CI-CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build Backend
+        run: |
+          docker build -t devops-backend ./backend
+
+      - name: Build Frontend
+        run: |
+          docker build -t devops-frontend ./frontend
+
+      - name: Tag Images
+        run: |
+          docker tag devops-backend:latest ${{ secrets.ECR_BACKEND }}
+          docker tag devops-frontend:latest ${{ secrets.ECR_FRONTEND }}
+
+      - name: Push Images
+        run: |
+          docker push ${{ secrets.ECR_BACKEND }}
+          docker push ${{ secrets.ECR_FRONTEND }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Init
+        run: |
+          cd terraform
+          terraform init
+
+      - name: Terraform Apply
+        run: |
+          cd terraform
+          terraform apply -auto-approve
+
+      - name: SSH Deploy
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            docker pull ${{ secrets.ECR_BACKEND }}
+            docker pull ${{ secrets.ECR_FRONTEND }}
+            docker run -d -p 8000:8000 ${{ secrets.ECR_BACKEND }}
+            docker run -d -p 80:5173 ${{ secrets.ECR_FRONTEND }}
