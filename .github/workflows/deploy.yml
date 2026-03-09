@@ -1,3 +1,4 @@
+```yaml
 name: DevOps CI/CD Pipeline
 
 on:
@@ -11,31 +12,37 @@ jobs:
 
     steps:
 
-    - name: Checkout Code
+    - name: Checkout Repository
       uses: actions/checkout@v3
 
+    # Login to DockerHub
     - name: Login to DockerHub
       uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build Backend
+    # Build Backend Docker Image
+    - name: Build Backend Image
       run: |
         docker build -t ${{ secrets.DOCKER_USERNAME }}/devops-backend:latest ./backend
 
-    - name: Push Backend
+    # Push Backend Docker Image
+    - name: Push Backend Image
       run: |
         docker push ${{ secrets.DOCKER_USERNAME }}/devops-backend:latest
 
-    - name: Build Frontend
+    # Build Frontend Docker Image
+    - name: Build Frontend Image
       run: |
         docker build -t ${{ secrets.DOCKER_USERNAME }}/devops-frontend:latest ./frontend
 
-    - name: Push Frontend
+    # Push Frontend Docker Image
+    - name: Push Frontend Image
       run: |
         docker push ${{ secrets.DOCKER_USERNAME }}/devops-frontend:latest
 
+    # Deploy to EC2 using SSH
     - name: Deploy to EC2
       uses: appleboy/ssh-action@v0.1.6
       with:
@@ -54,3 +61,4 @@ jobs:
 
           docker run -d -p 8000:8000 --name backend ${{ secrets.DOCKER_USERNAME }}/devops-backend:latest
           docker run -d -p 80:5173 --name frontend ${{ secrets.DOCKER_USERNAME }}/devops-frontend:latest
+```
