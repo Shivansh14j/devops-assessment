@@ -66,3 +66,6 @@ jobs:
             docker pull ${{ secrets.ECR_FRONTEND }}
             docker run -d -p 8000:8000 ${{ secrets.ECR_BACKEND }}
             docker run -d -p 80:5173 ${{ secrets.ECR_FRONTEND }}
+
+
+            #
